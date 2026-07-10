@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Painel horizontal de vendas R2 2026" />
+  <title>Migração R2</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+    <section class="painel-fixo">
+      <div class="painel-fixo-conteudo">
+        <header class="topo">
+          <div class="titulo-topo">
+            <p class="subtitulo">CONTROLE COMERCIAL</p>
+            <h1>Migração R2</h1>
+          </div>
+
+          <button id="btnAtualizar" class="botao botao-atualizar" type="button">
+            <span class="texto-desktop">Atualizar dados</span>
+            <span class="texto-mobile">Atualizar</span>
+          </button>
+        </header>
+
+        <div class="resumo-acoes">
+          <section class="resumo resumo-unico" aria-label="Resumo das vendas">
+            <article class="resumo-card">
+              <span>Registros</span>
+              <strong id="totalRegistros">0</strong>
+            </article>
+          </section>
+
+          <button
+            id="btnAlternarFiltros"
+            class="botao-filtros-mobile"
+            type="button"
+            aria-expanded="false"
+            aria-controls="painelFiltros"
+          >
+            <span>Filtros</span>
+            <span class="seta-filtros" aria-hidden="true">⌄</span>
+          </button>
+        </div>
+
+        <section id="painelFiltros" class="filtros" aria-label="Filtros">
+          <label class="campo campo-busca">
+            <span>Buscar</span>
+            <input
+              id="busca"
+              type="search"
+              placeholder="Aluno, vendedor, modalidade..."
+              autocomplete="off"
+            />
+          </label>
+
+          <label class="campo">
+            <span>Vendedor</span>
+            <select id="filtroVendedor">
+              <option value="">Todos</option>
+            </select>
+          </label>
+
+          <label class="campo">
+            <span>Tipo de pagamento</span>
+            <select id="filtroPagamento">
+              <option value="">Todos</option>
+            </select>
+          </label>
+
+          <label class="campo">
+            <span>Modalidade</span>
+            <select id="filtroModalidade">
+              <option value="">Todas</option>
+            </select>
+          </label>
+
+          <label class="campo">
+            <span>Pendência R2</span>
+            <select id="filtroPendencia">
+              <option value="">Todas</option>
+              <option value="SIM">Com pendência</option>
+              <option value="NÃO">Sem pendência</option>
+            </select>
+          </label>
+
+          <button id="btnLimpar" class="botao botao-claro" type="button">
+            Limpar filtros
+          </button>
+        </section>
+      </div>
+    </section>
+
+    <section class="tabela-card">
+      <div class="barra-status">
+        <p id="statusTabela">Carregando dados da planilha...</p>
+        <span id="ultimaAtualizacao">Aguardando atualização</span>
+      </div>
+
+      <div class="tabela-scroll" tabindex="0">
+        <table>
+          <thead>
+            <tr>
+              <th>DIA</th>
+              <th>MÊS</th>
+              <th>ANO</th>
+              <th>VENDEDOR</th>
+              <th>ALUNO</th>
+              <th>TIPO PGTO</th>
+              <th>TAXA</th>
+              <th>BOLETO</th>
+              <th>PARCELAS</th>
+              <th>CARTÃO</th>
+              <th>PENDÊNCIA R2</th>
+              <th>BAIXA BOLETO</th>
+              <th>MODALIDADE</th>
+            </tr>
+          </thead>
+
+          <tbody id="corpoTabela"></tbody>
+        </table>
+
+        <div id="estadoVazio" class="estado-vazio" hidden>
+          Nenhuma venda com o marcador R2 2026 foi encontrada.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rodape-fixo">
+    Desenvolvido por <strong>Cauê Galates</strong>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
