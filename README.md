@@ -1,8 +1,10 @@
-# Migração R2 — faixa azul mobile corrigida
+# Migração R2 — faixa azul mobile corrigida definitivamente
 
-Correção aplicada:
+No mobile:
 
-- No mobile, a barra de status agora fica fixa logo abaixo do topo azul.
-- A faixa azul dos títulos da tabela agora fica fixa logo abaixo da barra de status.
-- Isso impede que a faixa azul apareça solta no meio da tabela.
-- Topo fixo, filtros mobile e rodapé fixo foram mantidos.
+- Apenas o topo principal permanece fixo.
+- A barra de status acompanha a rolagem normal.
+- A faixa azul dos títulos fica exatamente antes da primeira linha.
+- A faixa não aparece mais no meio dos registros.
+- A rolagem horizontal da tabela foi mantida.
+- Desktop, filtros, rodapé e Apps Script não foram alterados.
