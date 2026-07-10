@@ -1,11 +1,12 @@
-# Migração R2 — faixa azul corrigida
+# Migração R2 — mobile ajustado
 
-Correções realizadas:
+Alterações realizadas:
 
-- A faixa azul do cabeçalho voltou para o local correto, imediatamente antes da primeira linha.
-- O cabeçalho não aparece mais no meio dos registros.
-- O topo azul agora é realmente fixo.
-- A página reserva automaticamente o espaço correspondente ao topo.
-- O cabeçalho da tabela permanece fixo logo abaixo do topo durante a rolagem.
-- A altura do topo é recalculada automaticamente.
-- Nenhuma alteração foi feita no Apps Script ou na conexão com a planilha.
+- Topo mobile mais compacto.
+- Título e botão de atualização na mesma linha.
+- Card de registros reduzido.
+- Filtros recolhidos no celular.
+- Botão `Filtros` abre um painel flutuante somente quando necessário.
+- O painel de filtros fecha ao clicar fora, limpar filtros ou pressionar Escape.
+- Rodapé fixo com `Desenvolvido por Cauê Galates`.
+- Desktop, conexão com a planilha e Apps Script mantidos.

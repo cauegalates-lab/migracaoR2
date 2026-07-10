@@ -2,7 +2,7 @@ const CONFIG = {
   // Link informado por você.
   // Depois de atualizar o Apps Script, mantenha este mesmo endereço.
   DATA_URL:
- "https://script.google.com/macros/s/AKfycbwQGo2Ipg9zfIKAaN5A1YtCZMIckRqQOkhB8BE7T3Uq4x8tDeve4Asz7WF3sRD2fit1/exec",
+  "https://script.google.com/macros/s/AKfycbwQGo2Ipg9zfIKAaN5A1YtCZMIckRqQOkhB8BE7T3Uq4x8tDeve4Asz7WF3sRD2fit1/exec",
 
 
   // Atualiza automaticamente a cada 30 segundos.
@@ -32,6 +32,8 @@ const dom = {
 
   btnLimpar: document.querySelector("#btnLimpar"),
   btnAtualizar: document.querySelector("#btnAtualizar"),
+  btnAlternarFiltros: document.querySelector("#btnAlternarFiltros"),
+  painelFiltros: document.querySelector("#painelFiltros"),
 
   totalRegistros: document.querySelector("#totalRegistros")
 };
@@ -451,6 +453,30 @@ function atualizarAlturaTopoFixo() {
   );
 }
 
+
+function definirFiltrosMobile(aberto) {
+  if (!dom.btnAlternarFiltros || !dom.painelFiltros) {
+    return;
+  }
+
+  dom.painelFiltros.classList.toggle(
+    "filtros-abertos",
+    aberto
+  );
+
+  dom.btnAlternarFiltros.setAttribute(
+    "aria-expanded",
+    String(aberto)
+  );
+}
+
+function alternarFiltrosMobile() {
+  const aberto =
+    dom.btnAlternarFiltros?.getAttribute("aria-expanded") === "true";
+
+  definirFiltrosMobile(!aberto);
+}
+
 function configurarEventos() {
   dom.busca.addEventListener("input", aplicarFiltros);
   dom.filtroVendedor.addEventListener("change", aplicarFiltros);
@@ -458,8 +484,39 @@ function configurarEventos() {
   dom.filtroModalidade.addEventListener("change", aplicarFiltros);
   dom.filtroPendencia.addEventListener("change", aplicarFiltros);
 
-  dom.btnLimpar.addEventListener("click", limparFiltros);
+  dom.btnLimpar.addEventListener("click", () => {
+    limparFiltros();
+
+    if (window.matchMedia("(max-width: 520px)").matches) {
+      definirFiltrosMobile(false);
+    }
+  });
+
   dom.btnAtualizar.addEventListener("click", carregarDados);
+
+  dom.btnAlternarFiltros?.addEventListener(
+    "click",
+    alternarFiltrosMobile
+  );
+
+  document.addEventListener("click", (evento) => {
+    if (!window.matchMedia("(max-width: 520px)").matches) {
+      return;
+    }
+
+    const clicouNoPainel = dom.painelFiltros?.contains(evento.target);
+    const clicouNoBotao = dom.btnAlternarFiltros?.contains(evento.target);
+
+    if (!clicouNoPainel && !clicouNoBotao) {
+      definirFiltrosMobile(false);
+    }
+  });
+
+  document.addEventListener("keydown", (evento) => {
+    if (evento.key === "Escape") {
+      definirFiltrosMobile(false);
+    }
+  });
 
   dom.corpoTabela.addEventListener("change", (evento) => {
     const select = evento.target.closest(".baixa-select");
@@ -488,7 +545,13 @@ function configurarEventos() {
     );
   });
 
-  window.addEventListener("resize", atualizarAlturaTopoFixo);
+  window.addEventListener("resize", () => {
+    atualizarAlturaTopoFixo();
+
+    if (!window.matchMedia("(max-width: 520px)").matches) {
+      definirFiltrosMobile(false);
+    }
+  });
 
   const painelFixo = document.querySelector(".painel-fixo");
 

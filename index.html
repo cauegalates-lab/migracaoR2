@@ -12,69 +12,82 @@
     <section class="painel-fixo">
       <div class="painel-fixo-conteudo">
         <header class="topo">
-      <div>
-        <p class="subtitulo">CONTROLE COMERCIAL</p>
-        <h1>Migração R2</h1>
-      </div>
+          <div class="titulo-topo">
+            <p class="subtitulo">CONTROLE COMERCIAL</p>
+            <h1>Migração R2</h1>
+          </div>
 
-      <button id="btnAtualizar" class="botao" type="button">
-        Atualizar dados
-      </button>
-    </header>
+          <button id="btnAtualizar" class="botao botao-atualizar" type="button">
+            <span class="texto-desktop">Atualizar dados</span>
+            <span class="texto-mobile">Atualizar</span>
+          </button>
+        </header>
 
-    <section class="resumo resumo-unico" aria-label="Resumo das vendas">
-      <article class="resumo-card">
-        <span>Registros</span>
-        <strong id="totalRegistros">0</strong>
-      </article>
-    </section>
+        <div class="resumo-acoes">
+          <section class="resumo resumo-unico" aria-label="Resumo das vendas">
+            <article class="resumo-card">
+              <span>Registros</span>
+              <strong id="totalRegistros">0</strong>
+            </article>
+          </section>
 
-    <section class="filtros" aria-label="Filtros">
-      <label class="campo campo-busca">
-        <span>Buscar</span>
-        <input
-          id="busca"
-          type="search"
-          placeholder="Aluno, vendedor, modalidade..."
-          autocomplete="off"
-        />
-      </label>
+          <button
+            id="btnAlternarFiltros"
+            class="botao-filtros-mobile"
+            type="button"
+            aria-expanded="false"
+            aria-controls="painelFiltros"
+          >
+            <span>Filtros</span>
+            <span class="seta-filtros" aria-hidden="true">⌄</span>
+          </button>
+        </div>
 
-      <label class="campo">
-        <span>Vendedor</span>
-        <select id="filtroVendedor">
-          <option value="">Todos</option>
-        </select>
-      </label>
+        <section id="painelFiltros" class="filtros" aria-label="Filtros">
+          <label class="campo campo-busca">
+            <span>Buscar</span>
+            <input
+              id="busca"
+              type="search"
+              placeholder="Aluno, vendedor, modalidade..."
+              autocomplete="off"
+            />
+          </label>
 
-      <label class="campo">
-        <span>Tipo de pagamento</span>
-        <select id="filtroPagamento">
-          <option value="">Todos</option>
-        </select>
-      </label>
+          <label class="campo">
+            <span>Vendedor</span>
+            <select id="filtroVendedor">
+              <option value="">Todos</option>
+            </select>
+          </label>
 
-      <label class="campo">
-        <span>Modalidade</span>
-        <select id="filtroModalidade">
-          <option value="">Todas</option>
-        </select>
-      </label>
+          <label class="campo">
+            <span>Tipo de pagamento</span>
+            <select id="filtroPagamento">
+              <option value="">Todos</option>
+            </select>
+          </label>
 
-      <label class="campo">
-        <span>Pendência R2</span>
-        <select id="filtroPendencia">
-          <option value="">Todas</option>
-          <option value="SIM">Com pendência</option>
-          <option value="NÃO">Sem pendência</option>
-        </select>
-      </label>
+          <label class="campo">
+            <span>Modalidade</span>
+            <select id="filtroModalidade">
+              <option value="">Todas</option>
+            </select>
+          </label>
 
-      <button id="btnLimpar" class="botao botao-claro" type="button">
-        Limpar filtros
-      </button>
-    </section>
+          <label class="campo">
+            <span>Pendência R2</span>
+            <select id="filtroPendencia">
+              <option value="">Todas</option>
+              <option value="SIM">Com pendência</option>
+              <option value="NÃO">Sem pendência</option>
+            </select>
+          </label>
 
+          <button id="btnLimpar" class="botao botao-claro" type="button">
+            Limpar filtros
+          </button>
+        </section>
       </div>
     </section>
 
@@ -103,6 +116,7 @@
               <th>MODALIDADE</th>
             </tr>
           </thead>
+
           <tbody id="corpoTabela"></tbody>
         </table>
 
@@ -112,6 +126,10 @@
       </div>
     </section>
   </main>
+
+  <footer class="rodape-fixo">
+    Desenvolvido por <strong>Cauê Galates</strong>
+  </footer>
 
   <script src="script.js"></script>
 </body>
