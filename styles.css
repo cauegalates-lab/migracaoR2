@@ -3,6 +3,7 @@
   --topo-fixo-altura: 205px;
   --topo-azul: #0b2f68;
   --topo-azul-2: #123f82;
+  --barra-status-altura: 38px;
   --superficie: #ffffff;
   --superficie-suave: #f8fafc;
   --texto: #152033;
@@ -203,11 +204,14 @@ h1 {
 }
 
 .barra-status {
+  position: sticky;
+  top: var(--topo-fixo-altura);
+  z-index: 24;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 38px;
+  min-height: var(--barra-status-altura);
   border-bottom: 1px solid var(--linha);
   background: #fff;
   padding: 0 12px;
@@ -250,7 +254,7 @@ thead {
 
 thead th {
   position: sticky;
-  top: var(--topo-fixo-altura);
+  top: calc(var(--topo-fixo-altura) + var(--barra-status-altura));
   z-index: 20;
 }
 
@@ -882,5 +886,12 @@ body {
 
   .topo .botao-atualizar {
     width: auto;
+  }
+}
+
+
+@media (max-width: 520px) {
+  :root {
+    --barra-status-altura: 34px;
   }
 }
