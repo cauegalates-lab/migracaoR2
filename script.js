@@ -5,6 +5,7 @@ const CONFIG = {
   "https://script.google.com/macros/s/AKfycbwQGo2Ipg9zfIKAaN5A1YtCZMIckRqQOkhB8BE7T3Uq4x8tDeve4Asz7WF3sRD2fit1/exec",
 
 
+
   // Atualiza automaticamente a cada 30 segundos.
   AUTO_REFRESH_MS: 30000,
 
