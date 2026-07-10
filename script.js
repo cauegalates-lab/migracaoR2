@@ -2,12 +2,7 @@ const CONFIG = {
   // Link informado por você.
   // Depois de atualizar o Apps Script, mantenha este mesmo endereço.
   DATA_URL:
-  "https://script.google.com/macros/s/AKfycbwQGo2Ipg9zfIKAaN5A1YtCZMIckRqQOkhB8BE7T3Uq4x8tDeve4Asz7WF3sRD2fit1/exec"
-  // Atualiza automaticamente a cada 30 segundos.
-  AUTO_REFRESH_MS: 30000,
-
-  // Tempo máximo para a resposta do Apps Script.
-  REQUEST_TIMEOUT_MS: 60000
+"https://script.google.com/macros/s/AKfycbwQGo2Ipg9zfIKAaN5A1YtCZMIckRqQOkhB8BE7T3Uq4x8tDeve4Asz7WF3sRD2fit1/exec"
 };
 
 const state = {
