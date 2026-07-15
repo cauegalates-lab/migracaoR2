@@ -244,7 +244,13 @@ async function salvarObservacao(id, texto) {
     throw new Error("Sua sessão terminou. Entre novamente para alterar.");
   }
 
+  const statusAtual =
+    state.baixasBoleto[id]?.status === "OK" ? "OK" : "PENDENTE";
+
   await update(ref(database, `baixasBoleto/${id}`), {
+    status: statusAtual,
+    atualizadoEm: serverTimestamp(),
+    atualizadoPor: usuario.email,
     observacao: String(texto ?? "").trim(),
     observacaoAtualizadaEm: serverTimestamp(),
     observacaoAtualizadaPor: usuario.email
