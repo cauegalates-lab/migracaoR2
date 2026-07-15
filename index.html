@@ -27,18 +27,8 @@
         <label class="login-campo">
           <span>Usuário</span>
           <div class="campo-input-icone">
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 8a7 7 0 0 0-14 0"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-              />
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 8a7 7 0 0 0-14 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
             </svg>
             <input
               id="loginUsuario"
@@ -66,9 +56,7 @@
 
         <p id="mensagemLogin" class="mensagem-login" role="alert" hidden></p>
 
-        <button id="btnEntrar" class="login-botao" type="submit">
-          Entrar
-        </button>
+        <button id="btnEntrar" class="login-botao" type="submit">Entrar</button>
       </form>
 
       <form id="formPrimeiroAcesso" class="login-form" hidden>
@@ -102,12 +90,7 @@
           />
         </label>
 
-        <p
-          id="mensagemPrimeiroAcesso"
-          class="mensagem-login"
-          role="alert"
-          hidden
-        ></p>
+        <p id="mensagemPrimeiroAcesso" class="mensagem-login" role="alert" hidden></p>
 
         <button id="btnDefinirSenha" class="login-botao" type="submit">
           Salvar senha e acessar
@@ -127,85 +110,38 @@
             <h1>Migração R2</h1>
           </div>
 
-          <div class="acoes-topo">
-            <span id="usuarioLogado" class="usuario-logado"></span>
-
-            <button id="btnAtualizar" class="botao botao-atualizar" type="button">
-              <span class="texto-desktop">Atualizar dados</span>
-              <span class="texto-mobile">Atualizar</span>
-            </button>
-
-            <button id="btnSair" class="botao botao-sair" type="button">
-              Sair
-            </button>
-          </div>
-        </header>
-
-        <div class="resumo-acoes">
-          <section class="resumo resumo-unico" aria-label="Resumo das vendas">
-            <article class="resumo-card">
-              <span>Registros</span>
-              <strong id="totalRegistros">0</strong>
-            </article>
-          </section>
-
-          <button
-            id="btnAlternarFiltros"
-            class="botao-filtros-mobile"
-            type="button"
-            aria-expanded="false"
-            aria-controls="painelFiltros"
-          >
-            <span>Filtros</span>
-            <span class="seta-filtros" aria-hidden="true">⌄</span>
-          </button>
-        </div>
-
-        <section id="painelFiltros" class="filtros" aria-label="Filtros">
-          <label class="campo campo-busca">
-            <span>Buscar</span>
+          <label class="busca-global" aria-label="Busca geral">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.8" />
+              <path d="m16 16 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
             <input
               id="busca"
               type="search"
-              placeholder="Aluno, vendedor, modalidade..."
+              placeholder="Buscar em todos os registros..."
               autocomplete="off"
             />
           </label>
 
-          <label class="campo">
-            <span>Vendedor</span>
-            <select id="filtroVendedor">
-              <option value="">Todos</option>
-            </select>
-          </label>
+          <div class="acoes-topo">
+            <div class="contador-registros" aria-label="Quantidade de registros exibidos">
+              <span>Registros</span>
+              <strong id="totalRegistros">0</strong>
+            </div>
 
-          <label class="campo">
-            <span>Tipo de pagamento</span>
-            <select id="filtroPagamento">
-              <option value="">Todos</option>
-            </select>
-          </label>
+            <span id="usuarioLogado" class="usuario-logado"></span>
 
-          <label class="campo">
-            <span>Modalidade</span>
-            <select id="filtroModalidade">
-              <option value="">Todas</option>
-            </select>
-          </label>
+            <button id="btnLimpar" class="botao botao-secundario" type="button">
+              Limpar filtros
+            </button>
 
-          <label class="campo">
-            <span>Pendência R2</span>
-            <select id="filtroPendencia">
-              <option value="">Todas</option>
-              <option value="SIM">Com pendência</option>
-              <option value="NÃO">Sem pendência</option>
-            </select>
-          </label>
+            <button id="btnAtualizar" class="botao botao-atualizar" type="button">
+              Atualizar
+            </button>
 
-          <button id="btnLimpar" class="botao botao-claro" type="button">
-            Limpar filtros
-          </button>
-        </section>
+            <button id="btnSair" class="botao botao-sair" type="button">Sair</button>
+          </div>
+        </header>
       </div>
     </section>
 
@@ -218,7 +154,7 @@
       <div class="tabela-scroll" tabindex="0">
         <table>
           <thead>
-            <tr>
+            <tr class="cabecalho-colunas">
               <th>DIA</th>
               <th>MÊS</th>
               <th>ANO</th>
@@ -232,6 +168,72 @@
               <th>PENDÊNCIA R2</th>
               <th>BAIXA BOLETO</th>
               <th>MODALIDADE</th>
+              <th>OBSERVAÇÃO</th>
+            </tr>
+
+            <tr class="linha-filtros-colunas">
+              <th>
+                <select data-filtro-coluna="dia" data-opcoes-dinamicas aria-label="Filtrar por dia">
+                  <option value="">Todos</option>
+                </select>
+              </th>
+              <th>
+                <select data-filtro-coluna="mes" data-opcoes-dinamicas aria-label="Filtrar por mês">
+                  <option value="">Todos</option>
+                </select>
+              </th>
+              <th>
+                <select data-filtro-coluna="ano" data-opcoes-dinamicas aria-label="Filtrar por ano">
+                  <option value="">Todos</option>
+                </select>
+              </th>
+              <th>
+                <select data-filtro-coluna="vendedor" data-opcoes-dinamicas aria-label="Filtrar por vendedor">
+                  <option value="">Todos</option>
+                </select>
+              </th>
+              <th>
+                <input data-filtro-coluna="aluno" type="search" placeholder="Filtrar" aria-label="Filtrar por aluno" />
+              </th>
+              <th>
+                <select data-filtro-coluna="tipoPgto" data-opcoes-dinamicas aria-label="Filtrar por tipo de pagamento">
+                  <option value="">Todos</option>
+                </select>
+              </th>
+              <th>
+                <input data-filtro-coluna="taxa" type="search" placeholder="Filtrar" aria-label="Filtrar por taxa" />
+              </th>
+              <th>
+                <input data-filtro-coluna="boleto" type="search" placeholder="Filtrar" aria-label="Filtrar por boleto" />
+              </th>
+              <th>
+                <input data-filtro-coluna="parcelas" type="search" placeholder="Filtrar" aria-label="Filtrar por parcelas" />
+              </th>
+              <th>
+                <input data-filtro-coluna="cartao" type="search" placeholder="Filtrar" aria-label="Filtrar por cartão" />
+              </th>
+              <th>
+                <select data-filtro-coluna="pendenciaR2" aria-label="Filtrar por pendência R2">
+                  <option value="">Todas</option>
+                  <option value="SIM">Com pendência</option>
+                  <option value="NÃO">Sem pendência</option>
+                </select>
+              </th>
+              <th>
+                <select data-filtro-coluna="baixaBoleto" aria-label="Filtrar por baixa do boleto">
+                  <option value="">Todas</option>
+                  <option value="PENDENTE">Pendente</option>
+                  <option value="OK">OK</option>
+                </select>
+              </th>
+              <th>
+                <select data-filtro-coluna="modalidade" data-opcoes-dinamicas aria-label="Filtrar por modalidade">
+                  <option value="">Todas</option>
+                </select>
+              </th>
+              <th>
+                <input data-filtro-coluna="observacao" type="search" placeholder="Filtrar" aria-label="Filtrar por observação" />
+              </th>
             </tr>
           </thead>
 
@@ -239,7 +241,7 @@
         </table>
 
         <div id="estadoVazio" class="estado-vazio" hidden>
-          Nenhuma venda com o marcador R2 2026 foi encontrada.
+          Nenhuma venda com os filtros selecionados foi encontrada.
         </div>
       </div>
     </section>
