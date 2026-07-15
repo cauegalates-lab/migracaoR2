@@ -214,7 +214,7 @@ h1 {
   min-height: var(--barra-status-altura);
   border-bottom: 1px solid var(--linha);
   background: #fff;
-  padding: 0 12px;
+  padding: 0 15px;
 }
 
 .barra-status p,
@@ -750,7 +750,7 @@ body {
   .resumo-acoes {
     display: flex;
     align-items: stretch;
-    gap: 7px;
+    gap: 8px;
   }
 
   .resumo {
@@ -810,7 +810,7 @@ body {
     grid-template-columns: 1fr;
     max-height: calc(100vh - var(--topo-fixo-altura) - var(--rodape-altura) - 18px);
     overflow-y: auto;
-    gap: 7px;
+    gap: 8px;
     margin: 0;
     border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: 9px;
@@ -977,27 +977,27 @@ body.aguardando-autenticacao {
 .login-card {
   position: relative;
   z-index: 1;
-  width: min(430px, 100%);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.98);
-  padding: 28px;
-  box-shadow: 0 28px 80px rgba(0, 10, 30, 0.38);
+  width: min(500px, 100%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.985);
+  padding: 38px 40px 30px;
+  box-shadow: 0 32px 90px rgba(0, 10, 30, 0.34);
 }
 
 .login-identidade {
   display: flex;
   align-items: center;
-  gap: 13px;
-  margin-bottom: 28px;
+  gap: 14px;
+  margin-bottom: 34px;
 }
 
 .login-selo {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 13px;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
   background: linear-gradient(145deg, var(--topo-azul), var(--topo-azul-2));
   color: #fff;
   font-size: 1rem;
@@ -1015,12 +1015,12 @@ body.aguardando-autenticacao {
 
 .login-identidade h1 {
   color: var(--topo-azul);
-  font-size: 1.42rem;
+  font-size: 1.55rem;
 }
 
 .login-form {
   display: grid;
-  gap: 17px;
+  gap: 20px;
 }
 
 .login-cabecalho {
@@ -1030,14 +1030,14 @@ body.aguardando-autenticacao {
 .login-cabecalho h2 {
   margin: 0 0 5px;
   color: var(--texto);
-  font-size: 1.25rem;
+  font-size: 1.45rem;
 }
 
 .login-cabecalho p {
   margin: 0;
   color: var(--texto-suave);
-  font-size: 0.82rem;
-  line-height: 1.5;
+  font-size: 0.88rem;
+  line-height: 1.55;
 }
 
 .primeiro-acesso-tag {
@@ -1054,24 +1054,24 @@ body.aguardando-autenticacao {
 
 .login-campo {
   display: grid;
-  gap: 7px;
+  gap: 8px;
 }
 
 .login-campo > span {
   color: #3f4b5e;
-  font-size: 0.74rem;
+  font-size: 0.78rem;
   font-weight: 850;
 }
 
 .login-campo input {
   width: 100%;
-  height: 45px;
-  border: 1px solid #d4dce7;
-  border-radius: 9px;
+  height: 52px;
+  border: 1px solid #d7dee8;
+  border-radius: 11px;
   outline: none;
   background: #fff;
   color: var(--texto);
-  padding: 0 12px;
+  padding: 0 15px;
   transition:
     border-color 0.16s ease,
     box-shadow 0.16s ease;
@@ -1082,49 +1082,39 @@ body.aguardando-autenticacao {
   box-shadow: 0 0 0 4px rgba(21, 63, 143, 0.1);
 }
 
-.usuario-input {
-  display: grid;
-  grid-template-columns: 36px 1fr;
-  align-items: center;
-  height: 45px;
-  overflow: hidden;
-  border: 1px solid #d4dce7;
-  border-radius: 9px;
-  background: #fff;
-  transition:
-    border-color 0.16s ease,
-    box-shadow 0.16s ease;
+.campo-input-icone {
+  position: relative;
 }
 
-.usuario-input:focus-within {
-  border-color: var(--azul);
-  box-shadow: 0 0 0 4px rgba(21, 63, 143, 0.1);
+.campo-input-icone svg {
+  position: absolute;
+  top: 50%;
+  left: 15px;
+  z-index: 1;
+  width: 20px;
+  height: 20px;
+  color: #7a8798;
+  pointer-events: none;
+  transform: translateY(-50%);
 }
 
-.usuario-input > span {
-  display: grid;
-  place-items: center;
-  height: 100%;
-  border-right: 1px solid #e3e8ef;
-  background: #f4f7fb;
-  color: var(--topo-azul);
-  font-weight: 900;
+.campo-input-icone input {
+  padding-left: 46px;
 }
 
-.usuario-input input {
-  height: 43px;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none !important;
+.login-ajuda {
+  color: #8a94a4;
+  font-size: 0.69rem;
+  line-height: 1.4;
 }
 
 .login-botao {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 46px;
+  min-height: 52px;
   border: 0;
-  border-radius: 9px;
+  border-radius: 11px;
   background: linear-gradient(135deg, var(--topo-azul), var(--topo-azul-2));
   color: #fff;
   font-weight: 900;
@@ -1164,7 +1154,7 @@ body.aguardando-autenticacao {
 }
 
 .login-rodape {
-  margin: 20px 0 0;
+  margin: 24px 0 0;
   color: #8a94a4;
   font-size: 0.67rem;
   text-align: center;
@@ -1211,12 +1201,12 @@ body.aguardando-autenticacao {
   }
 
   .login-card {
-    border-radius: 14px;
-    padding: 22px 18px;
+    border-radius: 17px;
+    padding: 28px 22px 24px;
   }
 
   .login-identidade {
-    margin-bottom: 22px;
+    margin-bottom: 28px;
   }
 
   .login-selo {
@@ -1225,7 +1215,7 @@ body.aguardando-autenticacao {
   }
 
   .login-identidade h1 {
-    font-size: 1.25rem;
+    font-size: 1.45rem;
   }
 }
 
