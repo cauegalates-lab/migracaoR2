@@ -1,23 +1,73 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
+import {
+  browserLocalPersistence,
+  getAuth,
+  onAuthStateChanged,
+  setPersistence,
+  signInWithEmailAndPassword,
+  signOut,
+  updatePassword
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
+import {
+  get,
+  getDatabase,
+  onValue,
+  ref,
+  serverTimestamp,
+  set
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCbIVW0-_4vgakOCsEkt_XwiLg6DKxpjMM",
+  authDomain: "migracao-r2.firebaseapp.com",
+  databaseURL: "https://migracao-r2-default-rtdb.firebaseio.com",
+  projectId: "migracao-r2",
+  storageBucket: "migracao-r2.firebasestorage.app",
+  messagingSenderId: "856420962966",
+  appId: "1:856420962966:web:3bb07ec2777a21306f68b7"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
+const database = getDatabase(firebaseApp);
+
 const CONFIG = {
-  // Link informado por você.
-  // Depois de atualizar o Apps Script, mantenha este mesmo endereço.
   DATA_URL:
     "https://script.google.com/macros/s/AKfycbwQGo2Ipg9zfIKAaN5A1YtCZMIckRqQOkhB8BE7T3Uq4x8tDeve4Asz7WF3sRD2fit1/exec",
-
-  // Atualiza automaticamente a cada 30 segundos.
   AUTO_REFRESH_MS: 30000,
-
-  // Tempo máximo para a resposta do Apps Script.
-  REQUEST_TIMEOUT_MS: 60000
+  REQUEST_TIMEOUT_MS: 60000,
+  DOMINIO_LOGIN: "sistema.local"
 };
 
 const state = {
   dados: [],
   filtrados: [],
-  carregando: false
+  baixasBoleto: {},
+  carregando: false,
+  usuarioFirebase: null,
+  primeiroAcessoPendente: false,
+  painelInicializado: false,
+  cancelarListenerBaixas: null,
+  intervaloAtualizacao: null
 };
 
 const dom = {
+  telaLogin: document.querySelector("#telaLogin"),
+  formLogin: document.querySelector("#formLogin"),
+  formPrimeiroAcesso: document.querySelector("#formPrimeiroAcesso"),
+  loginUsuario: document.querySelector("#loginUsuario"),
+  loginSenha: document.querySelector("#loginSenha"),
+  novaSenha: document.querySelector("#novaSenha"),
+  confirmarNovaSenha: document.querySelector("#confirmarNovaSenha"),
+  mensagemLogin: document.querySelector("#mensagemLogin"),
+  mensagemPrimeiroAcesso: document.querySelector("#mensagemPrimeiroAcesso"),
+  btnEntrar: document.querySelector("#btnEntrar"),
+  btnDefinirSenha: document.querySelector("#btnDefinirSenha"),
+  appProtegido: document.querySelector("#appProtegido"),
+  rodapeProtegido: document.querySelector("#rodapeProtegido"),
+  usuarioLogado: document.querySelector("#usuarioLogado"),
+  btnSair: document.querySelector("#btnSair"),
+
   corpoTabela: document.querySelector("#corpoTabela"),
   estadoVazio: document.querySelector("#estadoVazio"),
   statusTabela: document.querySelector("#statusTabela"),
@@ -45,6 +95,28 @@ function normalizarTexto(valor) {
     .toLowerCase();
 }
 
+function normalizarUsuario(valor) {
+  return normalizarTexto(valor)
+    .replace(/^@+/, "")
+    .replace(/\s+/g, "");
+}
+
+function criarEmailInterno(usuario) {
+  const usuarioNormalizado = normalizarUsuario(usuario);
+
+  if (!/^[a-z0-9._-]{2,40}$/.test(usuarioNormalizado)) {
+    throw new Error(
+      "Use apenas letras, números, ponto, traço ou sublinhado no usuário."
+    );
+  }
+
+  return `${usuarioNormalizado}@${CONFIG.DOMINIO_LOGIN}`;
+}
+
+function obterNomeUsuario(email) {
+  return String(email ?? "").split("@")[0] || "usuário";
+}
+
 function normalizarPendencia(valor) {
   const texto = normalizarTexto(valor);
 
@@ -69,39 +141,7 @@ function normalizarPendencia(valor) {
     return "NÃO";
   }
 
-  // Preserva textos diferentes, mas considera como pendência visível.
   return String(valor ?? "").trim().toUpperCase();
-}
-
-function converterNumero(valor) {
-  if (typeof valor === "number") {
-    return Number.isFinite(valor) ? valor : 0;
-  }
-
-  let texto = String(valor ?? "")
-    .replace(/R\$/gi, "")
-    .replace(/\s/g, "")
-    .trim();
-
-  if (!texto) {
-    return 0;
-  }
-
-  if (texto.includes(",") && texto.includes(".")) {
-    texto = texto.replace(/\./g, "").replace(",", ".");
-  } else if (texto.includes(",")) {
-    texto = texto.replace(",", ".");
-  }
-
-  const numero = Number(texto);
-  return Number.isFinite(numero) ? numero : 0;
-}
-
-function formatarMoeda(valor) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL"
-  }).format(converterNumero(valor));
 }
 
 function escaparHTML(valor) {
@@ -144,7 +184,6 @@ function normalizarRegistro(registro) {
   };
 }
 
-
 function criarChaveRegistro(registro) {
   return [
     registro.dia,
@@ -162,13 +201,39 @@ function criarChaveRegistro(registro) {
     .join("|");
 }
 
-function obterBaixaBoleto(registro) {
-  const chave = criarChaveRegistro(registro);
-  return localStorage.getItem(`baixa-boleto:${chave}`) || "PENDENTE";
+function calcularHash(texto, semente) {
+  let hash = semente >>> 0;
+
+  for (let indice = 0; indice < texto.length; indice += 1) {
+    hash ^= texto.charCodeAt(indice);
+    hash = Math.imul(hash, 16777619) >>> 0;
+  }
+
+  return hash.toString(16).padStart(8, "0");
 }
 
-function salvarBaixaBoleto(chave, status) {
-  localStorage.setItem(`baixa-boleto:${chave}`, status);
+function criarIdFirebase(registro) {
+  const chave = criarChaveRegistro(registro);
+  return `r_${calcularHash(chave, 2166136261)}_${calcularHash(chave, 3339675911)}`;
+}
+
+function obterBaixaBoleto(registro) {
+  const id = criarIdFirebase(registro);
+  return state.baixasBoleto[id]?.status === "OK" ? "OK" : "PENDENTE";
+}
+
+async function salvarBaixaBoleto(id, status) {
+  const usuario = auth.currentUser;
+
+  if (!usuario) {
+    throw new Error("Sua sessão terminou. Entre novamente para alterar.");
+  }
+
+  await set(ref(database, `baixasBoleto/${id}`), {
+    status,
+    atualizadoEm: serverTimestamp(),
+    atualizadoPor: usuario.email
+  });
 }
 
 function criarLinha(registro) {
@@ -177,7 +242,7 @@ function criarLinha(registro) {
     ? escaparHTML(registro.pendenciaR2 || "PENDENTE")
     : "OK";
 
-  const chaveBaixa = criarChaveRegistro(registro);
+  const chaveBaixa = criarIdFirebase(registro);
   const statusBaixa = obterBaixaBoleto(registro);
 
   return `
@@ -236,9 +301,13 @@ function atualizarResumo() {
 
 function preencherSelect(select, valores) {
   const valorAtual = select.value;
-  const opcaoInicial = select.options[0];
+  const textoOpcaoInicial = select.options[0]?.textContent || "Todos";
 
   select.innerHTML = "";
+
+  const opcaoInicial = document.createElement("option");
+  opcaoInicial.value = "";
+  opcaoInicial.textContent = textoOpcaoInicial;
   select.appendChild(opcaoInicial);
 
   [...new Set(valores.filter(Boolean))]
@@ -383,7 +452,7 @@ function buscarJsonp() {
 }
 
 async function carregarDados() {
-  if (state.carregando) {
+  if (state.carregando || !auth.currentUser || state.primeiroAcessoPendente) {
     return;
   }
 
@@ -423,9 +492,7 @@ async function carregarDados() {
     state.filtrados = [];
     renderizarTabela();
 
-    dom.statusTabela.textContent =
-      `Erro ao carregar: ${erro.message}`;
-
+    dom.statusTabela.textContent = `Erro ao carregar: ${erro.message}`;
     dom.ultimaAtualizacao.textContent =
       "Verifique a implantação do Apps Script";
   } finally {
@@ -434,17 +501,14 @@ async function carregarDados() {
   }
 }
 
-
 function atualizarAlturaTopoFixo() {
   const painelFixo = document.querySelector(".painel-fixo");
 
-  if (!painelFixo) {
+  if (!painelFixo || dom.appProtegido.hidden) {
     return;
   }
 
-  const altura = Math.ceil(
-    painelFixo.getBoundingClientRect().height
-  );
+  const altura = Math.ceil(painelFixo.getBoundingClientRect().height);
 
   document.documentElement.style.setProperty(
     "--topo-fixo-altura",
@@ -452,21 +516,13 @@ function atualizarAlturaTopoFixo() {
   );
 }
 
-
 function definirFiltrosMobile(aberto) {
   if (!dom.btnAlternarFiltros || !dom.painelFiltros) {
     return;
   }
 
-  dom.painelFiltros.classList.toggle(
-    "filtros-abertos",
-    aberto
-  );
-
-  dom.btnAlternarFiltros.setAttribute(
-    "aria-expanded",
-    String(aberto)
-  );
+  dom.painelFiltros.classList.toggle("filtros-abertos", aberto);
+  dom.btnAlternarFiltros.setAttribute("aria-expanded", String(aberto));
 }
 
 function alternarFiltrosMobile() {
@@ -476,7 +532,226 @@ function alternarFiltrosMobile() {
   definirFiltrosMobile(!aberto);
 }
 
-function configurarEventos() {
+function definirMensagem(elemento, mensagem = "", tipo = "erro") {
+  elemento.hidden = !mensagem;
+  elemento.textContent = mensagem;
+  elemento.classList.toggle("mensagem-sucesso", tipo === "sucesso");
+}
+
+function definirBotaoCarregando(botao, carregando, textoCarregando) {
+  if (!botao.dataset.textoOriginal) {
+    botao.dataset.textoOriginal = botao.textContent.trim();
+  }
+
+  botao.disabled = carregando;
+  botao.textContent = carregando
+    ? textoCarregando
+    : botao.dataset.textoOriginal;
+}
+
+function traduzirErroFirebase(erro) {
+  const mensagens = {
+    "auth/invalid-credential": "Usuário ou senha incorretos.",
+    "auth/invalid-email": "O usuário informado é inválido.",
+    "auth/user-disabled": "Este usuário foi desativado.",
+    "auth/too-many-requests":
+      "Muitas tentativas. Aguarde um pouco e tente novamente.",
+    "auth/network-request-failed":
+      "Falha de conexão. Verifique sua internet e tente novamente.",
+    "auth/weak-password": "A nova senha precisa ser mais forte.",
+    "auth/requires-recent-login":
+      "Entre novamente antes de alterar a senha."
+  };
+
+  return mensagens[erro?.code] || erro?.message || "Não foi possível concluir.";
+}
+
+function mostrarTelaLogin() {
+  document.body.classList.add("aguardando-autenticacao");
+  dom.telaLogin.hidden = false;
+  dom.formLogin.hidden = false;
+  dom.formPrimeiroAcesso.hidden = true;
+  dom.appProtegido.hidden = true;
+  dom.rodapeProtegido.hidden = true;
+  dom.loginSenha.value = "";
+  definirMensagem(dom.mensagemLogin);
+  definirMensagem(dom.mensagemPrimeiroAcesso);
+
+  window.setTimeout(() => dom.loginUsuario.focus(), 50);
+}
+
+function mostrarPrimeiroAcesso() {
+  document.body.classList.add("aguardando-autenticacao");
+  dom.telaLogin.hidden = false;
+  dom.formLogin.hidden = true;
+  dom.formPrimeiroAcesso.hidden = false;
+  dom.appProtegido.hidden = true;
+  dom.rodapeProtegido.hidden = true;
+  dom.novaSenha.value = "";
+  dom.confirmarNovaSenha.value = "";
+  definirMensagem(dom.mensagemPrimeiroAcesso);
+
+  window.setTimeout(() => dom.novaSenha.focus(), 50);
+}
+
+function abrirPainel(usuario) {
+  state.primeiroAcessoPendente = false;
+  document.body.classList.remove("aguardando-autenticacao");
+  dom.telaLogin.hidden = true;
+  dom.formLogin.hidden = false;
+  dom.formPrimeiroAcesso.hidden = true;
+  dom.appProtegido.hidden = false;
+  dom.rodapeProtegido.hidden = false;
+  dom.usuarioLogado.textContent = `@${obterNomeUsuario(usuario.email)}`;
+
+  iniciarListenerBaixas();
+  inicializarPainel();
+
+  window.setTimeout(atualizarAlturaTopoFixo, 50);
+  window.setTimeout(atualizarAlturaTopoFixo, 300);
+}
+
+function encerrarPainel() {
+  if (typeof state.cancelarListenerBaixas === "function") {
+    state.cancelarListenerBaixas();
+  }
+
+  state.cancelarListenerBaixas = null;
+  state.baixasBoleto = {};
+  state.usuarioFirebase = null;
+  state.primeiroAcessoPendente = false;
+
+  if (state.intervaloAtualizacao) {
+    window.clearInterval(state.intervaloAtualizacao);
+    state.intervaloAtualizacao = null;
+  }
+}
+
+async function verificarPrimeiroAcesso(usuario) {
+  const snapshot = await get(ref(database, `usuarios/${usuario.uid}`));
+  const cadastro = snapshot.val();
+
+  return cadastro?.senhaDefinida !== true;
+}
+
+function iniciarListenerBaixas() {
+  if (typeof state.cancelarListenerBaixas === "function") {
+    state.cancelarListenerBaixas();
+  }
+
+  state.cancelarListenerBaixas = onValue(
+    ref(database, "baixasBoleto"),
+    (snapshot) => {
+      state.baixasBoleto = snapshot.val() || {};
+
+      if (state.dados.length > 0) {
+        renderizarTabela();
+      }
+    },
+    (erro) => {
+      console.error("Erro ao sincronizar baixas:", erro);
+      dom.statusTabela.textContent =
+        "Não foi possível sincronizar a baixa dos boletos.";
+    }
+  );
+}
+
+async function processarLogin(evento) {
+  evento.preventDefault();
+  definirMensagem(dom.mensagemLogin);
+
+  try {
+    const email = criarEmailInterno(dom.loginUsuario.value);
+    const senha = dom.loginSenha.value;
+
+    if (!senha) {
+      throw new Error("Digite sua senha ou código de primeiro acesso.");
+    }
+
+    definirBotaoCarregando(dom.btnEntrar, true, "Entrando...");
+    await signInWithEmailAndPassword(auth, email, senha);
+  } catch (erro) {
+    console.error(erro);
+    definirMensagem(dom.mensagemLogin, traduzirErroFirebase(erro));
+  } finally {
+    definirBotaoCarregando(dom.btnEntrar, false, "Entrando...");
+  }
+}
+
+async function processarPrimeiroAcesso(evento) {
+  evento.preventDefault();
+  definirMensagem(dom.mensagemPrimeiroAcesso);
+
+  const usuario = auth.currentUser;
+  const novaSenha = dom.novaSenha.value;
+  const confirmarSenha = dom.confirmarNovaSenha.value;
+
+  if (!usuario) {
+    mostrarTelaLogin();
+    return;
+  }
+
+  if (novaSenha.length < 8) {
+    definirMensagem(
+      dom.mensagemPrimeiroAcesso,
+      "A senha precisa ter pelo menos 8 caracteres."
+    );
+    return;
+  }
+
+  if (novaSenha !== confirmarSenha) {
+    definirMensagem(
+      dom.mensagemPrimeiroAcesso,
+      "As senhas digitadas não são iguais."
+    );
+    return;
+  }
+
+  try {
+    definirBotaoCarregando(
+      dom.btnDefinirSenha,
+      true,
+      "Salvando senha..."
+    );
+
+    await updatePassword(usuario, novaSenha);
+    await set(ref(database, `usuarios/${usuario.uid}`), {
+      usuario: obterNomeUsuario(usuario.email),
+      email: usuario.email,
+      senhaDefinida: true,
+      atualizadoEm: serverTimestamp()
+    });
+
+    abrirPainel(usuario);
+  } catch (erro) {
+    console.error(erro);
+    definirMensagem(
+      dom.mensagemPrimeiroAcesso,
+      traduzirErroFirebase(erro)
+    );
+  } finally {
+    definirBotaoCarregando(
+      dom.btnDefinirSenha,
+      false,
+      "Salvando senha..."
+    );
+  }
+}
+
+async function sairDoPainel() {
+  dom.btnSair.disabled = true;
+
+  try {
+    await signOut(auth);
+  } catch (erro) {
+    console.error(erro);
+    alert("Não foi possível sair. Tente novamente.");
+  } finally {
+    dom.btnSair.disabled = false;
+  }
+}
+
+function configurarEventosPainel() {
   dom.busca.addEventListener("input", aplicarFiltros);
   dom.filtroVendedor.addEventListener("change", aplicarFiltros);
   dom.filtroPagamento.addEventListener("change", aplicarFiltros);
@@ -492,11 +767,8 @@ function configurarEventos() {
   });
 
   dom.btnAtualizar.addEventListener("click", carregarDados);
-
-  dom.btnAlternarFiltros?.addEventListener(
-    "click",
-    alternarFiltrosMobile
-  );
+  dom.btnAlternarFiltros?.addEventListener("click", alternarFiltrosMobile);
+  dom.btnSair.addEventListener("click", sairDoPainel);
 
   document.addEventListener("click", (evento) => {
     if (!window.matchMedia("(max-width: 520px)").matches) {
@@ -517,7 +789,7 @@ function configurarEventos() {
     }
   });
 
-  dom.corpoTabela.addEventListener("change", (evento) => {
+  dom.corpoTabela.addEventListener("change", async (evento) => {
     const select = evento.target.closest(".baixa-select");
 
     if (!select) {
@@ -525,23 +797,32 @@ function configurarEventos() {
     }
 
     const chave = select.dataset.chave;
-    const status = select.value;
+    const novoStatus = select.value;
 
-    if (!chave || !status) {
+    if (!chave || !novoStatus) {
       return;
     }
 
-    salvarBaixaBoleto(chave, status);
+    const statusAnterior =
+      state.baixasBoleto[chave]?.status === "OK" ? "OK" : "PENDENTE";
 
-    select.classList.toggle(
-      "baixa-select-ok",
-      status === "OK"
-    );
+    select.disabled = true;
 
-    select.classList.toggle(
-      "baixa-select-pendente",
-      status !== "OK"
-    );
+    try {
+      await salvarBaixaBoleto(chave, novoStatus);
+
+      select.classList.toggle("baixa-select-ok", novoStatus === "OK");
+      select.classList.toggle(
+        "baixa-select-pendente",
+        novoStatus !== "OK"
+      );
+    } catch (erro) {
+      console.error(erro);
+      select.value = statusAnterior;
+      alert(traduzirErroFirebase(erro));
+    } finally {
+      select.disabled = false;
+    }
   });
 
   window.addEventListener("resize", () => {
@@ -558,13 +839,65 @@ function configurarEventos() {
     const observerTopo = new ResizeObserver(atualizarAlturaTopoFixo);
     observerTopo.observe(painelFixo);
   }
-
-  window.setInterval(carregarDados, CONFIG.AUTO_REFRESH_MS);
 }
 
-configurarEventos();
-atualizarAlturaTopoFixo();
-carregarDados();
+function inicializarPainel() {
+  if (!state.painelInicializado) {
+    configurarEventosPainel();
+    state.painelInicializado = true;
+  }
 
-window.setTimeout(atualizarAlturaTopoFixo, 100);
-window.setTimeout(atualizarAlturaTopoFixo, 500);
+  if (!state.intervaloAtualizacao) {
+    state.intervaloAtualizacao = window.setInterval(
+      carregarDados,
+      CONFIG.AUTO_REFRESH_MS
+    );
+  }
+
+  carregarDados();
+}
+
+async function configurarAutenticacao() {
+  try {
+    await setPersistence(auth, browserLocalPersistence);
+  } catch (erro) {
+    console.error("Não foi possível persistir a sessão:", erro);
+  }
+
+  dom.formLogin.addEventListener("submit", processarLogin);
+  dom.formPrimeiroAcesso.addEventListener(
+    "submit",
+    processarPrimeiroAcesso
+  );
+
+  onAuthStateChanged(auth, async (usuario) => {
+    if (!usuario) {
+      encerrarPainel();
+      mostrarTelaLogin();
+      return;
+    }
+
+    state.usuarioFirebase = usuario;
+
+    try {
+      const primeiroAcesso = await verificarPrimeiroAcesso(usuario);
+      state.primeiroAcessoPendente = primeiroAcesso;
+
+      if (primeiroAcesso) {
+        mostrarPrimeiroAcesso();
+        return;
+      }
+
+      abrirPainel(usuario);
+    } catch (erro) {
+      console.error(erro);
+      definirMensagem(
+        dom.mensagemLogin,
+        "Não foi possível validar o acesso no banco de dados."
+      );
+      await signOut(auth);
+    }
+  });
+}
+
+configurarAutenticacao();

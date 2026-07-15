@@ -7,8 +7,105 @@
   <title>Migração R2</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
-  <main class="app">
+<body class="aguardando-autenticacao">
+  <section id="telaLogin" class="tela-login" aria-label="Acesso ao painel">
+    <div class="login-card">
+      <div class="login-identidade">
+        <span class="login-selo" aria-hidden="true">R2</span>
+        <div>
+          <p>CONTROLE COMERCIAL</p>
+          <h1>Migração R2</h1>
+        </div>
+      </div>
+
+      <form id="formLogin" class="login-form">
+        <div class="login-cabecalho">
+          <h2>Acessar painel</h2>
+          <p>Entre com seu usuário e sua senha.</p>
+        </div>
+
+        <label class="login-campo">
+          <span>Usuário</span>
+          <div class="usuario-input">
+            <span aria-hidden="true">@</span>
+            <input
+              id="loginUsuario"
+              type="text"
+              placeholder="caue"
+              autocomplete="username"
+              autocapitalize="none"
+              spellcheck="false"
+              required
+            />
+          </div>
+        </label>
+
+        <label class="login-campo">
+          <span>Senha ou código de primeiro acesso</span>
+          <input
+            id="loginSenha"
+            type="password"
+            placeholder="Digite sua senha"
+            autocomplete="current-password"
+            required
+          />
+        </label>
+
+        <p id="mensagemLogin" class="mensagem-login" role="alert" hidden></p>
+
+        <button id="btnEntrar" class="login-botao" type="submit">
+          Entrar
+        </button>
+      </form>
+
+      <form id="formPrimeiroAcesso" class="login-form" hidden>
+        <div class="login-cabecalho">
+          <span class="primeiro-acesso-tag">PRIMEIRO ACESSO</span>
+          <h2>Crie sua senha definitiva</h2>
+          <p>Use no mínimo 8 caracteres.</p>
+        </div>
+
+        <label class="login-campo">
+          <span>Nova senha</span>
+          <input
+            id="novaSenha"
+            type="password"
+            minlength="8"
+            placeholder="Mínimo de 8 caracteres"
+            autocomplete="new-password"
+            required
+          />
+        </label>
+
+        <label class="login-campo">
+          <span>Confirmar nova senha</span>
+          <input
+            id="confirmarNovaSenha"
+            type="password"
+            minlength="8"
+            placeholder="Digite a senha novamente"
+            autocomplete="new-password"
+            required
+          />
+        </label>
+
+        <p
+          id="mensagemPrimeiroAcesso"
+          class="mensagem-login"
+          role="alert"
+          hidden
+        ></p>
+
+        <button id="btnDefinirSenha" class="login-botao" type="submit">
+          Salvar senha e acessar
+        </button>
+      </form>
+
+      <p class="login-rodape">Acesso restrito aos usuários cadastrados.</p>
+    </div>
+  </section>
+
+  <main id="appProtegido" class="app" hidden>
     <section class="painel-fixo">
       <div class="painel-fixo-conteudo">
         <header class="topo">
@@ -17,10 +114,18 @@
             <h1>Migração R2</h1>
           </div>
 
-          <button id="btnAtualizar" class="botao botao-atualizar" type="button">
-            <span class="texto-desktop">Atualizar dados</span>
-            <span class="texto-mobile">Atualizar</span>
-          </button>
+          <div class="acoes-topo">
+            <span id="usuarioLogado" class="usuario-logado"></span>
+
+            <button id="btnAtualizar" class="botao botao-atualizar" type="button">
+              <span class="texto-desktop">Atualizar dados</span>
+              <span class="texto-mobile">Atualizar</span>
+            </button>
+
+            <button id="btnSair" class="botao botao-sair" type="button">
+              Sair
+            </button>
+          </div>
         </header>
 
         <div class="resumo-acoes">
@@ -127,10 +232,10 @@
     </section>
   </main>
 
-  <footer class="rodape-fixo">
+  <footer id="rodapeProtegido" class="rodape-fixo" hidden>
     Desenvolvido por <strong>Cauê Galates</strong>
   </footer>
 
-  <script src="script.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>
