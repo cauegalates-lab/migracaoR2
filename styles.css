@@ -1189,3 +1189,15 @@ body.aguardando-autenticacao {
     font-size: 1.45rem;
   }
 }
+
+/* Acesso somente para visualização */
+.modo-visualizacao .baixa-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.82;
+}
+
+.modo-visualizacao .modal-observacao-form textarea[readonly] {
+  cursor: default;
+  background: #f5f7fa;
+  color: var(--texto);
+}

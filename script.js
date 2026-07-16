@@ -50,7 +50,8 @@ const state = {
   painelInicializado: false,
   cancelarListenerBaixas: null,
   intervaloAtualizacao: null,
-  observacaoModalChave: null
+  observacaoModalChave: null,
+  perfilUsuario: "editor"
 };
 
 const dom = {
@@ -122,6 +123,10 @@ function criarEmailInterno(usuario) {
 
 function obterNomeUsuario(email) {
   return String(email ?? "").split("@")[0] || "usuário";
+}
+
+function usuarioPodeEditar() {
+  return state.perfilUsuario === "editor";
 }
 
 function normalizarPendencia(valor) {
@@ -241,6 +246,10 @@ async function salvarBaixaBoleto(id, status) {
     throw new Error("Sua sessão terminou. Entre novamente para alterar.");
   }
 
+  if (!usuarioPodeEditar()) {
+    throw new Error("Este acesso é somente para visualização.");
+  }
+
   await update(ref(database, `baixasBoleto/${id}`), {
     status,
     atualizadoEm: serverTimestamp(),
@@ -253,6 +262,10 @@ async function salvarObservacao(id, texto) {
 
   if (!usuario) {
     throw new Error("Sua sessão terminou. Entre novamente para alterar.");
+  }
+
+  if (!usuarioPodeEditar()) {
+    throw new Error("Este acesso é somente para visualização.");
   }
 
   const statusAtual =
@@ -279,23 +292,35 @@ function abrirModalObservacao(chave, aluno) {
   }
 
   const observacao = String(state.baixasBoleto[chave]?.observacao ?? "");
+  const podeEditar = usuarioPodeEditar();
   state.observacaoModalChave = chave;
 
-  dom.tituloModalObservacao.textContent = observacao
-    ? "Editar observação"
-    : "Adicionar observação";
+  dom.tituloModalObservacao.textContent = podeEditar
+    ? observacao
+      ? "Editar observação"
+      : "Adicionar observação"
+    : "Visualizar observação";
   dom.alunoModalObservacao.textContent = aluno || "Registro selecionado";
   dom.textoObservacao.value = observacao;
+  dom.textoObservacao.readOnly = !podeEditar;
+  dom.textoObservacao.placeholder = podeEditar
+    ? "Digite a observação desta linha..."
+    : "Nenhuma observação cadastrada.";
+  dom.btnSalvarObservacao.hidden = !podeEditar;
+  dom.btnCancelarObservacao.textContent = podeEditar ? "Cancelar" : "Fechar";
   dom.modalObservacao.hidden = false;
   document.body.classList.add("modal-aberto");
   atualizarContadorObservacao();
 
   window.requestAnimationFrame(() => {
     dom.textoObservacao.focus();
-    dom.textoObservacao.setSelectionRange(
-      dom.textoObservacao.value.length,
-      dom.textoObservacao.value.length
-    );
+
+    if (podeEditar) {
+      dom.textoObservacao.setSelectionRange(
+        dom.textoObservacao.value.length,
+        dom.textoObservacao.value.length
+      );
+    }
   });
 }
 
@@ -309,6 +334,10 @@ function fecharModalObservacao() {
 
 async function processarObservacao(evento) {
   evento.preventDefault();
+
+  if (!usuarioPodeEditar()) {
+    return;
+  }
 
   const chave = state.observacaoModalChave;
 
@@ -341,6 +370,7 @@ function criarLinha(registro) {
   const chaveBaixa = criarIdFirebase(registro);
   const statusBaixa = obterBaixaBoleto(registro);
   const observacao = obterObservacao(registro);
+  const podeEditar = usuarioPodeEditar();
 
   return `
     <tr>
@@ -366,6 +396,7 @@ function criarLinha(registro) {
           class="baixa-select ${statusBaixa === "OK" ? "baixa-select-ok" : "baixa-select-pendente"}"
           data-chave="${escaparHTML(chaveBaixa)}"
           aria-label="Baixa do boleto de ${escaparHTML(registro.aluno)}"
+          ${podeEditar ? "" : "disabled"}
         >
           <option value="PENDENTE" ${statusBaixa === "PENDENTE" ? "selected" : ""}>
             Pendente
@@ -382,14 +413,14 @@ function criarLinha(registro) {
           type="button"
           data-chave="${escaparHTML(chaveBaixa)}"
           data-aluno="${escaparHTML(registro.aluno)}"
-          title="${observacao ? escaparHTML(observacao) : "Adicionar observação"}"
-          aria-label="${observacao ? "Ver ou editar" : "Adicionar"} observação de ${escaparHTML(registro.aluno)}"
+          title="${observacao ? escaparHTML(observacao) : podeEditar ? "Adicionar observação" : "Sem observação"}"
+          aria-label="${podeEditar ? observacao ? "Ver ou editar" : "Adicionar" : "Visualizar"} observação de ${escaparHTML(registro.aluno)}"
         >
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
             <path d="M5 4.75h14a1.25 1.25 0 0 1 1.25 1.25v9A1.25 1.25 0 0 1 19 16.25H9l-4.25 3v-13A1.25 1.25 0 0 1 5 4.75Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
             <path d="M8 9h8M8 12h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
           </svg>
-          <span>${observacao ? "Ver / editar" : "Adicionar"}</span>
+          <span>${podeEditar ? observacao ? "Ver / editar" : "Adicionar" : "Visualizar"}</span>
         </button>
       </td>
     </tr>
@@ -706,12 +737,15 @@ function mostrarPrimeiroAcesso() {
 function abrirPainel(usuario) {
   state.primeiroAcessoPendente = false;
   document.body.classList.remove("aguardando-autenticacao");
+  document.body.classList.toggle("modo-visualizacao", !usuarioPodeEditar());
   dom.telaLogin.hidden = true;
   dom.formLogin.hidden = false;
   dom.formPrimeiroAcesso.hidden = true;
   dom.appProtegido.hidden = false;
   dom.rodapeProtegido.hidden = false;
-  dom.usuarioLogado.textContent = `@${obterNomeUsuario(usuario.email)}`;
+  dom.usuarioLogado.textContent = usuarioPodeEditar()
+    ? `@${obterNomeUsuario(usuario.email)}`
+    : `@${obterNomeUsuario(usuario.email)} · Visualização`;
 
   iniciarListenerBaixas();
   inicializarPainel();
@@ -729,6 +763,8 @@ function encerrarPainel() {
   state.baixasBoleto = {};
   state.usuarioFirebase = null;
   state.primeiroAcessoPendente = false;
+  state.perfilUsuario = "editor";
+  document.body.classList.remove("modo-visualizacao");
 
   if (state.intervaloAtualizacao) {
     window.clearInterval(state.intervaloAtualizacao);
@@ -736,11 +772,9 @@ function encerrarPainel() {
   }
 }
 
-async function verificarPrimeiroAcesso(usuario) {
+async function obterCadastroUsuario(usuario) {
   const snapshot = await get(ref(database, `usuarios/${usuario.uid}`));
-  const cadastro = snapshot.val();
-
-  return cadastro?.senhaDefinida !== true;
+  return snapshot.val() || {};
 }
 
 function iniciarListenerBaixas() {
@@ -824,7 +858,7 @@ async function processarPrimeiroAcesso(evento) {
     );
 
     await updatePassword(usuario, novaSenha);
-    await set(ref(database, `usuarios/${usuario.uid}`), {
+    await update(ref(database, `usuarios/${usuario.uid}`), {
       usuario: obterNomeUsuario(usuario.email),
       email: usuario.email,
       senhaDefinida: true,
@@ -876,7 +910,7 @@ function configurarEventosPainel() {
   dom.corpoTabela.addEventListener("change", async (evento) => {
     const select = evento.target.closest(".baixa-select");
 
-    if (!select) {
+    if (!select || !usuarioPodeEditar()) {
       return;
     }
 
@@ -905,7 +939,7 @@ function configurarEventosPainel() {
       select.value = statusAnterior;
       alert(traduzirErroFirebase(erro));
     } finally {
-      select.disabled = false;
+      select.disabled = !usuarioPodeEditar();
     }
   });
 
@@ -987,7 +1021,11 @@ async function configurarAutenticacao() {
     state.usuarioFirebase = usuario;
 
     try {
-      const primeiroAcesso = await verificarPrimeiroAcesso(usuario);
+      const cadastro = await obterCadastroUsuario(usuario);
+      state.perfilUsuario =
+        cadastro?.perfil === "visualizacao" ? "visualizacao" : "editor";
+
+      const primeiroAcesso = cadastro?.senhaDefinida !== true;
       state.primeiroAcessoPendente = primeiroAcesso;
 
       if (primeiroAcesso) {
