@@ -275,7 +275,7 @@
     >
       <header class="modal-observacao-cabecalho">
         <div>
-          <p>OBSERVAÇÃO DO REGISTRO</p>
+          <p>FLUXO DE AJUSTE</p>
           <h2 id="tituloModalObservacao">Adicionar observação</h2>
           <span id="alunoModalObservacao"></span>
         </div>
@@ -291,16 +291,45 @@
       </header>
 
       <form id="formObservacao" class="modal-observacao-form">
-        <label for="textoObservacao">Observação</label>
-        <textarea
-          id="textoObservacao"
-          maxlength="240"
-          rows="6"
-          placeholder="Digite a observação desta linha..."
-        ></textarea>
+        <div class="observacao-status-linha">
+          <span>Status da solicitação</span>
+          <strong id="statusFluxoObservacao" class="observacao-status observacao-status-neutro">
+            Sem solicitação
+          </strong>
+        </div>
+
+        <section id="blocoSolicitacao" class="observacao-etapa">
+          <div class="observacao-etapa-cabecalho">
+            <label for="textoSolicitacao">Solicitação do financeiro</label>
+            <span id="contadorSolicitacao">0/240</span>
+          </div>
+          <textarea
+            id="textoSolicitacao"
+            maxlength="240"
+            rows="5"
+            placeholder="Descreva o que precisa ser ajustado..."
+          ></textarea>
+          <small id="metaSolicitacao" class="observacao-meta"></small>
+        </section>
+
+        <section id="blocoResposta" class="observacao-etapa" hidden>
+          <div class="observacao-etapa-cabecalho">
+            <label for="textoResposta">Resposta do comercial</label>
+            <span id="contadorResposta">0/240</span>
+          </div>
+          <textarea
+            id="textoResposta"
+            maxlength="240"
+            rows="4"
+            placeholder="Informe o que foi corrigido..."
+          ></textarea>
+          <small id="metaResposta" class="observacao-meta"></small>
+        </section>
+
+        <p id="instrucaoFluxoObservacao" class="observacao-instrucao"></p>
 
         <div class="modal-observacao-rodape">
-          <span id="contadorObservacao">0/240</span>
+          <span id="resumoFluxoObservacao">A baixa do boleto conclui o fluxo.</span>
 
           <div class="modal-observacao-acoes">
             <button
@@ -316,7 +345,7 @@
               class="botao-modal botao-modal-salvar"
               type="submit"
             >
-              Salvar observação
+              Solicitar ajuste
             </button>
           </div>
         </div>

@@ -51,6 +51,7 @@ const state = {
   cancelarListenerBaixas: null,
   intervaloAtualizacao: null,
   observacaoModalChave: null,
+  observacaoModalEtapa: null,
   perfilUsuario: "editor"
 };
 
@@ -88,8 +89,17 @@ const dom = {
   formObservacao: document.querySelector("#formObservacao"),
   tituloModalObservacao: document.querySelector("#tituloModalObservacao"),
   alunoModalObservacao: document.querySelector("#alunoModalObservacao"),
-  textoObservacao: document.querySelector("#textoObservacao"),
-  contadorObservacao: document.querySelector("#contadorObservacao"),
+  statusFluxoObservacao: document.querySelector("#statusFluxoObservacao"),
+  blocoSolicitacao: document.querySelector("#blocoSolicitacao"),
+  blocoResposta: document.querySelector("#blocoResposta"),
+  textoSolicitacao: document.querySelector("#textoSolicitacao"),
+  textoResposta: document.querySelector("#textoResposta"),
+  contadorSolicitacao: document.querySelector("#contadorSolicitacao"),
+  contadorResposta: document.querySelector("#contadorResposta"),
+  metaSolicitacao: document.querySelector("#metaSolicitacao"),
+  metaResposta: document.querySelector("#metaResposta"),
+  instrucaoFluxoObservacao: document.querySelector("#instrucaoFluxoObservacao"),
+  resumoFluxoObservacao: document.querySelector("#resumoFluxoObservacao"),
   btnFecharModalObservacao: document.querySelector("#btnFecharModalObservacao"),
   btnCancelarObservacao: document.querySelector("#btnCancelarObservacao"),
   btnSalvarObservacao: document.querySelector("#btnSalvarObservacao")
@@ -234,9 +244,101 @@ function obterBaixaBoleto(registro) {
   return state.baixasBoleto[id]?.status === "OK" ? "OK" : "PENDENTE";
 }
 
+function obterFluxoObservacaoPorId(id) {
+  const dados = state.baixasBoleto[id] || {};
+  const baixaBoleto = dados.status === "OK" ? "OK" : "PENDENTE";
+  const solicitacao = String(
+    dados.solicitacao ?? dados.observacao ?? ""
+  ).trim();
+  const respostaComercial = String(dados.respostaComercial ?? "").trim();
+  const statusSalvo = String(dados.observacaoStatus ?? "").toUpperCase();
+
+  let status = statusSalvo;
+
+  if (baixaBoleto === "OK") {
+    status = "CONCLUIDO";
+  } else if (status === "CONCLUIDO" || !["SOLICITADO", "AJUSTADO"].includes(status)) {
+    status = respostaComercial
+      ? "AJUSTADO"
+      : solicitacao
+        ? "SOLICITADO"
+        : "";
+  }
+
+  return {
+    status,
+    baixaBoleto,
+    solicitacao,
+    respostaComercial,
+    solicitadoPor: String(dados.solicitadoPor ?? dados.observacaoAtualizadaPor ?? ""),
+    solicitadoEm: dados.solicitadoEm ?? dados.observacaoAtualizadaEm ?? null,
+    ajustadoPor: String(dados.ajustadoPor ?? ""),
+    ajustadoEm: dados.ajustadoEm ?? null,
+    concluidoPor: String(dados.concluidoPor ?? dados.atualizadoPor ?? ""),
+    concluidoEm: dados.concluidoEm ?? dados.atualizadoEm ?? null
+  };
+}
+
+function obterFluxoObservacao(registro) {
+  return obterFluxoObservacaoPorId(criarIdFirebase(registro));
+}
+
+function obterRotuloFluxo(status) {
+  const rotulos = {
+    SOLICITADO: "Ajuste solicitado",
+    AJUSTADO: "Ajustado",
+    CONCLUIDO: "OK"
+  };
+
+  return rotulos[status] || "Sem solicitação";
+}
+
 function obterObservacao(registro) {
-  const id = criarIdFirebase(registro);
-  return String(state.baixasBoleto[id]?.observacao ?? "").trim();
+  const fluxo = obterFluxoObservacao(registro);
+
+  return [
+    obterRotuloFluxo(fluxo.status),
+    fluxo.solicitacao,
+    fluxo.respostaComercial
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function formatarDataHoraFirebase(valor) {
+  const numero = Number(valor);
+
+  if (!Number.isFinite(numero) || numero <= 0) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short"
+  }).format(new Date(numero));
+}
+
+function montarMetaFluxo(prefixo, usuario, data) {
+  const partes = [];
+
+  if (usuario) {
+    partes.push(`${prefixo} por ${obterNomeUsuario(usuario)}`);
+  }
+
+  const dataFormatada = formatarDataHoraFirebase(data);
+
+  if (dataFormatada) {
+    partes.push(dataFormatada);
+  }
+
+  return partes.join(" • ");
+}
+
+function atualizarEstadoLocalBaixa(id, alteracoes) {
+  state.baixasBoleto[id] = {
+    ...(state.baixasBoleto[id] || {}),
+    ...alteracoes
+  };
 }
 
 async function salvarBaixaBoleto(id, status) {
@@ -250,14 +352,33 @@ async function salvarBaixaBoleto(id, status) {
     throw new Error("Este acesso é somente para visualização.");
   }
 
-  await update(ref(database, `baixasBoleto/${id}`), {
+  const fluxoAtual = obterFluxoObservacaoPorId(id);
+  const concluido = status === "OK";
+  const statusAoReabrir = fluxoAtual.respostaComercial
+    ? "AJUSTADO"
+    : fluxoAtual.solicitacao
+      ? "SOLICITADO"
+      : null;
+
+  const alteracoes = {
     status,
     atualizadoEm: serverTimestamp(),
-    atualizadoPor: usuario.email
+    atualizadoPor: usuario.email,
+    observacaoStatus: concluido ? "CONCLUIDO" : statusAoReabrir,
+    concluidoEm: concluido ? serverTimestamp() : null,
+    concluidoPor: concluido ? usuario.email : null
+  };
+
+  await update(ref(database, `baixasBoleto/${id}`), alteracoes);
+
+  atualizarEstadoLocalBaixa(id, {
+    ...alteracoes,
+    atualizadoEm: Date.now(),
+    concluidoEm: concluido ? Date.now() : null
   });
 }
 
-async function salvarObservacao(id, texto) {
+async function salvarSolicitacaoAjuste(id, texto) {
   const usuario = auth.currentUser;
 
   if (!usuario) {
@@ -268,22 +389,90 @@ async function salvarObservacao(id, texto) {
     throw new Error("Este acesso é somente para visualização.");
   }
 
-  const statusAtual =
-    state.baixasBoleto[id]?.status === "OK" ? "OK" : "PENDENTE";
+  const solicitacao = String(texto ?? "").trim();
 
-  await update(ref(database, `baixasBoleto/${id}`), {
-    status: statusAtual,
+  if (!solicitacao) {
+    throw new Error("Descreva o que precisa ser ajustado.");
+  }
+
+  const alteracoes = {
+    status: "PENDENTE",
     atualizadoEm: serverTimestamp(),
     atualizadoPor: usuario.email,
-    observacao: String(texto ?? "").trim(),
-    observacaoAtualizadaEm: serverTimestamp(),
-    observacaoAtualizadaPor: usuario.email
+    observacao: solicitacao,
+    solicitacao,
+    observacaoStatus: "SOLICITADO",
+    solicitadoEm: serverTimestamp(),
+    solicitadoPor: usuario.email,
+    respostaComercial: null,
+    ajustadoEm: null,
+    ajustadoPor: null,
+    concluidoEm: null,
+    concluidoPor: null
+  };
+
+  await update(ref(database, `baixasBoleto/${id}`), alteracoes);
+
+  atualizarEstadoLocalBaixa(id, {
+    ...alteracoes,
+    solicitadoEm: Date.now()
   });
 }
 
-function atualizarContadorObservacao() {
-  const tamanho = dom.textoObservacao.value.length;
-  dom.contadorObservacao.textContent = `${tamanho}/240`;
+async function marcarAjusteRealizado(id, resposta) {
+  const usuario = auth.currentUser;
+
+  if (!usuario) {
+    throw new Error("Sua sessão terminou. Entre novamente para alterar.");
+  }
+
+  if (!usuarioPodeEditar()) {
+    throw new Error("Este acesso é somente para visualização.");
+  }
+
+  const fluxo = obterFluxoObservacaoPorId(id);
+
+  if (!fluxo.solicitacao) {
+    throw new Error("Não existe uma solicitação de ajuste para este registro.");
+  }
+
+  const respostaComercial = String(resposta ?? "").trim();
+  const alteracoes = {
+    status: "PENDENTE",
+    atualizadoEm: serverTimestamp(),
+    atualizadoPor: usuario.email,
+    observacaoStatus: "AJUSTADO",
+    respostaComercial,
+    ajustadoEm: serverTimestamp(),
+    ajustadoPor: usuario.email,
+    concluidoEm: null,
+    concluidoPor: null
+  };
+
+  await update(ref(database, `baixasBoleto/${id}`), alteracoes);
+
+  atualizarEstadoLocalBaixa(id, {
+    ...alteracoes,
+    ajustadoEm: Date.now()
+  });
+}
+
+function atualizarContadoresObservacao() {
+  dom.contadorSolicitacao.textContent = `${dom.textoSolicitacao.value.length}/240`;
+  dom.contadorResposta.textContent = `${dom.textoResposta.value.length}/240`;
+}
+
+function definirStatusVisualObservacao(status) {
+  dom.statusFluxoObservacao.className = "observacao-status";
+
+  const classe = {
+    SOLICITADO: "observacao-status-solicitado",
+    AJUSTADO: "observacao-status-ajustado",
+    CONCLUIDO: "observacao-status-concluido"
+  }[status] || "observacao-status-neutro";
+
+  dom.statusFluxoObservacao.classList.add(classe);
+  dom.statusFluxoObservacao.textContent = obterRotuloFluxo(status);
 }
 
 function abrirModalObservacao(chave, aluno) {
@@ -291,35 +480,94 @@ function abrirModalObservacao(chave, aluno) {
     return;
   }
 
-  const observacao = String(state.baixasBoleto[chave]?.observacao ?? "");
+  const fluxo = obterFluxoObservacaoPorId(chave);
   const podeEditar = usuarioPodeEditar();
-  state.observacaoModalChave = chave;
+  const podeSolicitar = podeEditar && !fluxo.status && fluxo.baixaBoleto !== "OK";
+  const podeMarcarAjustado =
+    podeEditar && fluxo.status === "SOLICITADO" && fluxo.baixaBoleto !== "OK";
 
-  dom.tituloModalObservacao.textContent = podeEditar
-    ? observacao
-      ? "Editar observação"
-      : "Adicionar observação"
-    : "Visualizar observação";
+  state.observacaoModalChave = chave;
+  state.observacaoModalEtapa = podeSolicitar
+    ? "SOLICITAR"
+    : podeMarcarAjustado
+      ? "AJUSTAR"
+      : "VISUALIZAR";
+
+  dom.tituloModalObservacao.textContent = {
+    SOLICITADO: "Solicitação de ajuste",
+    AJUSTADO: "Ajuste realizado",
+    CONCLUIDO: "Solicitação concluída"
+  }[fluxo.status] || "Nova solicitação de ajuste";
   dom.alunoModalObservacao.textContent = aluno || "Registro selecionado";
-  dom.textoObservacao.value = observacao;
-  dom.textoObservacao.readOnly = !podeEditar;
-  dom.textoObservacao.placeholder = podeEditar
-    ? "Digite a observação desta linha..."
-    : "Nenhuma observação cadastrada.";
-  dom.btnSalvarObservacao.hidden = !podeEditar;
-  dom.btnCancelarObservacao.textContent = podeEditar ? "Cancelar" : "Fechar";
+  definirStatusVisualObservacao(fluxo.status);
+
+  dom.textoSolicitacao.value = fluxo.solicitacao;
+  dom.textoResposta.value = fluxo.respostaComercial;
+  dom.textoSolicitacao.readOnly = !podeSolicitar;
+  dom.textoResposta.readOnly = !podeMarcarAjustado;
+  dom.blocoSolicitacao.hidden =
+    fluxo.status === "CONCLUIDO" && !fluxo.solicitacao;
+  dom.blocoResposta.hidden = !fluxo.solicitacao && !podeMarcarAjustado;
+
+  dom.metaSolicitacao.textContent = montarMetaFluxo(
+    "Solicitado",
+    fluxo.solicitadoPor,
+    fluxo.solicitadoEm
+  );
+  dom.metaResposta.textContent = montarMetaFluxo(
+    "Ajustado",
+    fluxo.ajustadoPor,
+    fluxo.ajustadoEm
+  );
+
+  if (podeSolicitar) {
+    dom.instrucaoFluxoObservacao.textContent =
+      "Descreva o ajuste necessário. O botão da tabela mudará para “Ajuste solicitado”.";
+    dom.resumoFluxoObservacao.textContent =
+      "Depois, o comercial poderá marcar como ajustado.";
+    dom.btnSalvarObservacao.textContent = "Solicitar ajuste";
+  } else if (podeMarcarAjustado) {
+    dom.instrucaoFluxoObservacao.textContent =
+      "Confira a solicitação, realize a correção e informe abaixo o que foi ajustado.";
+    dom.resumoFluxoObservacao.textContent =
+      "A confirmação final será feita pela coluna Baixa Boleto.";
+    dom.btnSalvarObservacao.textContent = "Marcar como ajustado";
+  } else if (fluxo.status === "AJUSTADO") {
+    dom.instrucaoFluxoObservacao.textContent =
+      "O ajuste foi realizado. Para concluir, altere a coluna Baixa Boleto para OK.";
+    dom.resumoFluxoObservacao.textContent = "Aguardando confirmação da baixa.";
+  } else if (fluxo.status === "CONCLUIDO") {
+    dom.instrucaoFluxoObservacao.textContent =
+      "Fluxo concluído automaticamente pela Baixa Boleto em OK.";
+    dom.resumoFluxoObservacao.textContent = montarMetaFluxo(
+      "Concluído",
+      fluxo.concluidoPor,
+      fluxo.concluidoEm
+    ) || "Concluído";
+  } else {
+    dom.instrucaoFluxoObservacao.textContent =
+      "Este acesso permite apenas visualizar a solicitação.";
+    dom.resumoFluxoObservacao.textContent = "Somente visualização.";
+  }
+
+  dom.btnSalvarObservacao.hidden = !podeSolicitar && !podeMarcarAjustado;
+  dom.btnCancelarObservacao.textContent =
+    podeSolicitar || podeMarcarAjustado ? "Cancelar" : "Fechar";
   dom.modalObservacao.hidden = false;
   document.body.classList.add("modal-aberto");
-  atualizarContadorObservacao();
+  atualizarContadoresObservacao();
 
   window.requestAnimationFrame(() => {
-    dom.textoObservacao.focus();
+    const campoFoco = podeSolicitar
+      ? dom.textoSolicitacao
+      : podeMarcarAjustado
+        ? dom.textoResposta
+        : dom.btnFecharModalObservacao;
 
-    if (podeEditar) {
-      dom.textoObservacao.setSelectionRange(
-        dom.textoObservacao.value.length,
-        dom.textoObservacao.value.length
-      );
+    campoFoco.focus();
+
+    if (campoFoco instanceof HTMLTextAreaElement && !campoFoco.readOnly) {
+      campoFoco.setSelectionRange(campoFoco.value.length, campoFoco.value.length);
     }
   });
 }
@@ -328,8 +576,9 @@ function fecharModalObservacao() {
   dom.modalObservacao.hidden = true;
   document.body.classList.remove("modal-aberto");
   state.observacaoModalChave = null;
+  state.observacaoModalEtapa = null;
   dom.formObservacao.reset();
-  atualizarContadorObservacao();
+  atualizarContadoresObservacao();
 }
 
 async function processarObservacao(evento) {
@@ -340,24 +589,31 @@ async function processarObservacao(evento) {
   }
 
   const chave = state.observacaoModalChave;
+  const etapa = state.observacaoModalEtapa;
 
-  if (!chave) {
+  if (!chave || !["SOLICITAR", "AJUSTAR"].includes(etapa)) {
     return;
   }
 
-  const novoTexto = dom.textoObservacao.value.trim();
   dom.btnSalvarObservacao.disabled = true;
+  const textoOriginal = dom.btnSalvarObservacao.textContent;
   dom.btnSalvarObservacao.textContent = "Salvando...";
 
   try {
-    await salvarObservacao(chave, novoTexto);
+    if (etapa === "SOLICITAR") {
+      await salvarSolicitacaoAjuste(chave, dom.textoSolicitacao.value);
+    } else {
+      await marcarAjusteRealizado(chave, dom.textoResposta.value);
+    }
+
+    aplicarFiltros();
     fecharModalObservacao();
   } catch (erro) {
     console.error(erro);
     alert(traduzirErroFirebase(erro));
   } finally {
     dom.btnSalvarObservacao.disabled = false;
-    dom.btnSalvarObservacao.textContent = "Salvar observação";
+    dom.btnSalvarObservacao.textContent = textoOriginal;
   }
 }
 
@@ -369,8 +625,15 @@ function criarLinha(registro) {
 
   const chaveBaixa = criarIdFirebase(registro);
   const statusBaixa = obterBaixaBoleto(registro);
+  const fluxoObservacao = obterFluxoObservacaoPorId(chaveBaixa);
   const observacao = obterObservacao(registro);
   const podeEditar = usuarioPodeEditar();
+  const classeObservacao = {
+    SOLICITADO: "observacao-botao-solicitado",
+    AJUSTADO: "observacao-botao-ajustado",
+    CONCLUIDO: "observacao-botao-concluido"
+  }[fluxoObservacao.status] || "observacao-botao-neutro";
+  const rotuloObservacao = obterRotuloFluxo(fluxoObservacao.status);
 
   return `
     <tr>
@@ -409,18 +672,18 @@ function criarLinha(registro) {
       <td title="${escaparHTML(registro.modalidade)}">${escaparHTML(registro.modalidade)}</td>
       <td class="celula-observacao">
         <button
-          class="observacao-botao ${observacao ? "observacao-botao-preenchida" : ""}"
+          class="observacao-botao ${classeObservacao}"
           type="button"
           data-chave="${escaparHTML(chaveBaixa)}"
           data-aluno="${escaparHTML(registro.aluno)}"
-          title="${observacao ? escaparHTML(observacao) : podeEditar ? "Adicionar observação" : "Sem observação"}"
-          aria-label="${podeEditar ? observacao ? "Ver ou editar" : "Adicionar" : "Visualizar"} observação de ${escaparHTML(registro.aluno)}"
+          title="${escaparHTML(observacao || rotuloObservacao)}"
+          aria-label="${escaparHTML(rotuloObservacao)} de ${escaparHTML(registro.aluno)}"
         >
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
             <path d="M5 4.75h14a1.25 1.25 0 0 1 1.25 1.25v9A1.25 1.25 0 0 1 19 16.25H9l-4.25 3v-13A1.25 1.25 0 0 1 5 4.75Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
             <path d="M8 9h8M8 12h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
           </svg>
-          <span>${podeEditar ? observacao ? "Ver / editar" : "Adicionar" : "Visualizar"}</span>
+          <span>${escaparHTML(rotuloObservacao)}</span>
         </button>
       </td>
     </tr>
@@ -934,6 +1197,7 @@ function configurarEventosPainel() {
         "baixa-select-pendente",
         novoStatus !== "OK"
       );
+      aplicarFiltros();
     } catch (erro) {
       console.error(erro);
       select.value = statusAnterior;
@@ -957,7 +1221,8 @@ function configurarEventosPainel() {
   });
 
   dom.formObservacao.addEventListener("submit", processarObservacao);
-  dom.textoObservacao.addEventListener("input", atualizarContadorObservacao);
+  dom.textoSolicitacao.addEventListener("input", atualizarContadoresObservacao);
+  dom.textoResposta.addEventListener("input", atualizarContadoresObservacao);
   dom.btnFecharModalObservacao.addEventListener("click", fecharModalObservacao);
   dom.btnCancelarObservacao.addEventListener("click", fecharModalObservacao);
   dom.modalObservacao.addEventListener("click", (evento) => {
