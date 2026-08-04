@@ -34,7 +34,7 @@ const database = getDatabase(firebaseApp);
 
 const CONFIG = {
   DATA_URL:
-    "https://script.google.com/macros/s/AKfycbypiLcr568UY-C8ln5cKUkwKzZIyp_OdBVq0pQ3weVogc9lTs1NCYnpBpkvrkmRhLFd/exec",
+    "https://script.google.com/macros/s/AKfycbzXCgSQ7yrj3evtyX6U9D7B5uBVlmtBWC5vayHc3yA24MujmrSQtEgERn9oFORDzmYv/exec",
   AUTO_REFRESH_MS: 30000,
   REQUEST_TIMEOUT_MS: 60000,
   DOMINIO_LOGIN: "sistema.local"
